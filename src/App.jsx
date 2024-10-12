@@ -66,7 +66,7 @@ function App() {
         <h2>Chat Messages</h2>
         {messages.map((m, index) => (
           <div key={index}>
-            <strong>{m.sender?.userName || 'Unknown User'}:</strong> {m.message}
+            <strong>{m.sender?.nickName || 'Unknown User'}:</strong> {m.message}
           </div>
         ))}
       </div>
