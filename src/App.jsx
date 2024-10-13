@@ -101,14 +101,6 @@ function App() {
 
       {/* JWT 토큰과 그룹 ID 입력 폼 */}
       <div>
-<<<<<<< HEAD
-        <h2>Chat Messages</h2>
-        {messages.map((m, index) => (
-          <div key={index}>
-            <strong>{m.sender?.nickName || 'Unknown User'}:</strong> {m.message}
-          </div>
-        ))}
-=======
         <input
           type="text"
           placeholder="JWT Token"
@@ -143,7 +135,6 @@ function App() {
         />
         <button onClick={sendMessage}>Send</button>
         <button onClick={leaveGroup}>Leave Group</button>
->>>>>>> 30e2adc (먼가먼가)
       </div>
     </div>
   );
