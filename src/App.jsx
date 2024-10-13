@@ -1,82 +1,150 @@
-import React, { useEffect, useState } from 'react';
-import * as signalR from '@microsoft/signalr';
+import React, { useEffect, useState } from "react";
+import * as signalR from "@microsoft/signalr";
 
 function App() {
   const [connection, setConnection] = useState(null);
-  const [groupId, setGroupId] = useState('df25195d-4ae3-4fb2-a7d4-2128b1ee3fa7'); // 실제 그룹 ID로 변경
+  const [groupId, setGroupId] = useState(""); // 사용자 입력을 통한 그룹 ID
   const [messages, setMessages] = useState([]);
-  const [userId, setUserId] = useState('f35e1572-3167-4513-8170-422b2f580f24'); // 실제 사용자 ID로 변경
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
+  const [pageNo] = useState(1);
+  const [pageSize] = useState(20); // 페이지당 메시지 수
+  const [token, setToken] = useState(""); // JWT 토큰 사용자 입력
 
-  // SignalR connection 생성 및 연결
-  useEffect(() => {
+  // 그룹 및 JWT 토큰을 입력하고 연결 시작
+  const handleConnect = () => {
+    if (!token || !groupId) {
+      alert("JWT 토큰과 그룹 ID를 입력해 주세요.");
+      return;
+    }
+
     const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl('https://api.test.guntaxi.com/chat-hub', {
-        transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
+      .withUrl("https://api.test.guntaxi.com/chat-hub", {
+        accessTokenFactory: () => token, // JWT 토큰을 전송
       })
       .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.Information) // 디버깅을 위해 로그 활성화
+      .configureLogging(signalR.LogLevel.Information) // 디버깅을 위한 로깅
       .build();
 
     setConnection(newConnection);
-  }, []);
+  };
 
   // SignalR 연결 시작 및 이벤트 핸들러 설정
   useEffect(() => {
     if (connection) {
-      connection.start()
+      connection
+        .start()
         .then(() => {
-          console.log('Connected!');
+          console.log("Connected to SignalR hub!");
 
           // 그룹에 참가
-          connection.invoke('JoinGroup', groupId);
+          connection
+            .invoke("JoinGroup", groupId)
+            .then(() => console.log(`Joined group: ${groupId}`))
+            .catch((err) =>
+              console.error(`Failed to join group: ${groupId}`, err)
+            );
 
-          // 서버에서 오는 메시지 처리
-          connection.on('ReceiveMessage', (message) => {
-            setMessages(messages => [...messages, message]);
+          // 메시지 수신
+          connection.on("ReceiveMessage", (chatMessage) => {
+            setMessages((messages) => [...messages, chatMessage]);
           });
 
-          // 서버에서 LoadMessages 이벤트 처리
-          connection.on('LoadMessages', (loadedMessages) => { // 여기서 서버의 "LoadMessages" 이벤트를 처리
-            setMessages(loadedMessages);
-          });
+          // 메시지 로드
+          connection
+            .invoke("LoadMessages", groupId, pageNo, pageSize)
+            .then(() => console.log("Messages loaded"))
+            .catch((err) => console.error("Failed to load messages", err));
 
+          connection.on("LoadMessages", (paginationDto) => {
+            setMessages(paginationDto.items); // 서버에서 받은 메시지 설정
+          });
         })
-        .catch(e => console.log('Connection failed: ', e));
+        .catch((err) => console.error("Connection failed: ", err));
     }
-  }, [connection, groupId]);
+  }, [connection, groupId, pageNo, pageSize]);
 
-  // 메시지 전송 함수
+  // 메시지 전송
   const sendMessage = async () => {
-    if (connection.state === signalR.HubConnectionState.Connected) {
+    if (
+      connection &&
+      connection.state === signalR.HubConnectionState.Connected
+    ) {
       try {
-        await connection.send('SendMessage', groupId, userId, message);
-        setMessage('');
+        await connection.invoke("SendMessage", groupId, message);
+        setMessage(""); // 메시지 입력 초기화
       } catch (e) {
-        console.log('Error sending message:', e);
+        console.error("Failed to send message:", e);
       }
     } else {
-      alert('No connection to server yet.');
+      alert("No connection to server yet.");
+    }
+  };
+
+  // 그룹 나가기
+  const leaveGroup = async () => {
+    if (
+      connection &&
+      connection.state === signalR.HubConnectionState.Connected
+    ) {
+      try {
+        await connection.invoke("LeaveGroup", groupId);
+        console.log(`Left group: ${groupId}`);
+      } catch (e) {
+        console.error("Failed to leave group:", e);
+      }
     }
   };
 
   return (
     <div>
+      <h2>Chat Application</h2>
+
+      {/* JWT 토큰과 그룹 ID 입력 폼 */}
       <div>
+<<<<<<< HEAD
         <h2>Chat Messages</h2>
         {messages.map((m, index) => (
           <div key={index}>
             <strong>{m.sender?.nickName || 'Unknown User'}:</strong> {m.message}
           </div>
         ))}
+=======
+        <input
+          type="text"
+          placeholder="JWT Token"
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Group ID"
+          value={groupId}
+          onChange={(e) => setGroupId(e.target.value)}
+        />
+        <button onClick={handleConnect}>Connect</button>
       </div>
-      <input
-        type="text"
-        placeholder="Message"
-        value={message}
-        onChange={e => setMessage(e.target.value)}
-      />
-      <button onClick={sendMessage}>Send</button>
+
+      <div>
+        <h3>Chat Messages in Group: {groupId}</h3>
+        <div style={{ height: "300px", overflowY: "scroll" }}>
+          {messages.map((m, index) => (
+            <div key={index}>
+              <strong>{m.sender?.nickName || "Unknown User"}</strong>
+              {`(${m.timestamp}):`}
+              {m.message}
+            </div>
+          ))}
+        </div>
+        <input
+          type="text"
+          placeholder="Message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        />
+        <button onClick={sendMessage}>Send</button>
+        <button onClick={leaveGroup}>Leave Group</button>
+>>>>>>> 30e2adc (먼가먼가)
+      </div>
     </div>
   );
 }
