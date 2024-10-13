@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import * as signalR from "@microsoft/signalr";
+import "./App.css"; // CSS 파일 추가
 
 function App() {
   const [connection, setConnection] = useState(null);
@@ -36,6 +37,10 @@ function App() {
         .then(() => {
           console.log("Connected to SignalR hub!");
 
+          // 기존 핸들러 제거
+          connection.off("ReceiveMessage");
+          connection.off("LoadMessages");
+
           // 그룹에 참가
           connection
             .invoke("JoinGroup", groupId)
@@ -56,7 +61,7 @@ function App() {
             .catch((err) => console.error("Failed to load messages", err));
 
           connection.on("LoadMessages", (paginationDto) => {
-            setMessages(paginationDto.items); // 서버에서 받은 메시지 설정
+            setMessages(paginationDto.items.reverse()); // 서버에서 받은 메시지 설정
           });
         })
         .catch((err) => console.error("Connection failed: ", err));
@@ -96,45 +101,58 @@ function App() {
   };
 
   return (
-    <div>
-      <h2>Chat Application</h2>
+    <div className="app-container">
+      <h2 className="app-title">Chat Application</h2>
 
       {/* JWT 토큰과 그룹 ID 입력 폼 */}
-      <div>
+      <div className="input-container">
         <input
           type="text"
           placeholder="JWT Token"
           value={token}
           onChange={(e) => setToken(e.target.value)}
+          className="input-field"
         />
         <input
           type="text"
           placeholder="Group ID"
           value={groupId}
           onChange={(e) => setGroupId(e.target.value)}
+          className="input-field"
         />
-        <button onClick={handleConnect}>Connect</button>
+        <button onClick={handleConnect} className="btn btn-connect">
+          Connect
+        </button>
       </div>
 
-      <div>
+      <div className="chat-container">
         <h3>Chat Messages in Group: {groupId}</h3>
-        <div style={{ height: "300px", overflowY: "scroll" }}>
+        <div className="messages-container">
           {messages.map((m, index) => (
-            <div key={index}>
-              <strong>{m.sender?.nickName || "Unknown User"}</strong>
-              {`(${m.timestamp}):`}
-              {m.message}
+            <div key={index} className="message">
+              <strong className="message-sender">
+                {m.sender?.nickName || "Unknown User"}
+              </strong>
+              {` (${m.timestamp}): `}
+              <span className="message-content">{m.message}</span>
             </div>
           ))}
         </div>
-        <input
-          type="text"
-          placeholder="Message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-        />
-        <button onClick={sendMessage}>Send</button>
-        <button onClick={leaveGroup}>Leave Group</button>
+        <div className="input-message-container">
+          <input
+            type="text"
+            placeholder="Type your message..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="input-field message-input"
+          />
+          <button onClick={sendMessage} className="btn btn-send">
+            Send
+          </button>
+          <button onClick={leaveGroup} className="btn btn-leave">
+            Leave Group
+          </button>
+        </div>
       </div>
     </div>
   );
