@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import "./App.css"; // CSS 파일 추가
 
@@ -10,6 +10,15 @@ function App() {
   const [pageNo] = useState(1);
   const [pageSize] = useState(20); // 페이지당 메시지 수
   const [token, setToken] = useState(""); // JWT 토큰 사용자 입력
+
+  const messagesEndRef = useRef(null); // 스크롤을 제어하기 위한 ref
+
+  // 스크롤을 맨 아래로 이동시키는 함수
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   // 그룹 및 JWT 토큰을 입력하고 연결 시작
   const handleConnect = () => {
@@ -67,6 +76,11 @@ function App() {
         .catch((err) => console.error("Connection failed: ", err));
     }
   }, [connection, groupId, pageNo, pageSize]);
+
+  // 메시지가 업데이트될 때마다 자동 스크롤
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // 메시지 전송
   const sendMessage = async () => {
@@ -137,6 +151,8 @@ function App() {
               <span className="message-content">{m.message}</span>
             </div>
           ))}
+          {/* 자동 스크롤을 위한 빈 div */}
+          <div ref={messagesEndRef} />
         </div>
         <div className="input-message-container">
           <input
